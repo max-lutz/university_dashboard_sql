@@ -2,6 +2,9 @@ import streamlit as st
 import sqlite3
 import pandas as pd
 
+import plotly.graph_objects as go
+import plotly.express as px
+from plotly.subplots import make_subplots
 
 # configuration of the page
 st.set_page_config(layout="wide")
@@ -44,6 +47,28 @@ def get_country_list(conn):
     return df_countries.iloc[:, 0].to_list()
 
 
+def plot_metric(number, title):
+    config = {'staticPlot': True, 'displayModeBar': False}
+
+    fig = go.Figure()
+    fig.add_trace(go.Indicator(
+        mode="number",
+        value=number,
+        title={"text": title, "font": {"size": 24}},
+        domain={'row': 0, 'column': 0}))
+
+    fig.update_xaxes(visible=False, fixedrange=True)
+    fig.update_yaxes(visible=False, fixedrange=True)
+    fig.update_layout(
+        margin=dict(t=30, b=0),
+        showlegend=False,
+        plot_bgcolor="white",
+        height=100,
+    )
+
+    st.plotly_chart(fig, use_container_width=True, config=config)
+
+
 def hide_streamlit_header_footer():
     hide_st_style = """
             <style>
@@ -83,24 +108,80 @@ if __name__ == "__main__":
 
     st.write("")
 
-    query = f'''
-    SELECT *
-    FROM university
-    LIMIT 10;
-    '''
+    row_1_col_1, row_1_col_2, row_1_col_3, row_1_col_4, row_1_col_5 = st.columns(5)
+    with row_1_col_1:
+        query = f'''
+            SELECT(
+                (
+                    CAST
+                    (
+                        (
+                            SELECT COUNT(country_name)
+                            FROM
+                                (SELECT country.country_name
+                                FROM university
+                                INNER JOIN country
+                                ON university.country_id = country.id
+                                LEFT JOIN university_ranking_year
+                                ON university.id = university_ranking_year.university_id
+                                WHERE ranking_criteria_id == 21
+                                GROUP BY university.university_name
+                                ORDER BY AVG(university_ranking_year.score) DESC
+                                LIMIT 200
+                                )
+                            WHERE country_name == '{country}'
+                        )
+                    AS FLOAT
+                    )
+                )
+                /
+                (
+                    CAST
+                    (
+                        (
+                            SELECT COUNT(*)
+                            FROM university
+                            INNER JOIN country
+                            ON university.country_id = country.id
+                            WHERE country.country_name == '{country}'
+                        )
+                        AS FLOAT
+                    )
+                )
+            ) as perc_uni_top_200
+        '''
 
-    st.write(execute_query(conn, query))
+        df = execute_query(conn, query)
+        plot_metric(df.iloc[0, 0]*100, "% of Universities in top 200")
 
-    query = f'''
-    SELECT university.id, university.university_name, country.country_name, 
-    university_year.year, university_year.num_students, university_year.student_staff_ratio,
-    university_year.pct_international_students, university_year.pct_female_students
-    FROM university
-    LEFT JOIN country
-    ON university.country_id = country.id
-    INNER JOIN university_year
-    ON university.id = university_year.university_id
-    WHERE country.country_name == 'France'
-    '''
+    # with row_1_col_2:
+    #     plot_metric(len(df_orders["order_id"].unique()), len(df_orders_prev["order_id"].unique()), "Total orders")
 
-    st.write(execute_query(conn, query))
+    # with row_1_col_3:
+    #     plot_metric(df_orders["basket_size"].mean(), df_orders_prev["basket_size"].mean(), "Average basket size")
+
+    # with row_1_col_4:
+    #     plot_metric(df_orders["days_since_prior_order"].mean(),
+    #                 df_orders_prev["days_since_prior_order"].mean(), "Days between orders")
+
+    # query = f'''
+    # SELECT *
+    # FROM university
+    # LIMIT 10;
+    # '''
+
+    # st.write(execute_query(conn, query))
+
+    # query = f'''
+    # SELECT university.id, university.university_name, country.country_name,
+    # university_year.year, university_year.num_students, university_year.student_staff_ratio,
+    # university_year.pct_international_students, university_year.pct_female_students
+    # FROM university
+    # LEFT JOIN country
+    # ON university.country_id = country.id
+    # INNER JOIN university_year
+    # ON university.id = university_year.university_id
+    # WHERE country.country_name == 'France'
+    # '''
+
+    # st.write(execute_query(conn, query))
