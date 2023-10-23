@@ -6,6 +6,8 @@ import plotly.graph_objects as go
 import plotly.express as px
 from plotly.subplots import make_subplots
 
+from sql_queries import *
+
 # configuration of the page
 st.set_page_config(layout="wide")
 
@@ -108,51 +110,13 @@ if __name__ == "__main__":
 
     st.write("")
 
-    row_1_col_1, row_1_col_2, row_1_col_3, row_1_col_4, row_1_col_5 = st.columns(5)
+    row_1_col_1, row_1_col_2, row_1_col_3, row_1_col_4, row_1_col_5, row_1_col_6, row_1_col_7, row_1_col_8 = st.columns(
+        (ROW, 0.1, ROW, 0.1, ROW, 0.1, ROW, 0.1))
     with row_1_col_1:
-        query = f'''
-            SELECT(
-                (
-                    CAST
-                    (
-                        (
-                            SELECT COUNT(country_name)
-                            FROM
-                                (SELECT country.country_name
-                                FROM university
-                                INNER JOIN country
-                                ON university.country_id = country.id
-                                LEFT JOIN university_ranking_year
-                                ON university.id = university_ranking_year.university_id
-                                WHERE ranking_criteria_id == 21
-                                GROUP BY university.university_name
-                                ORDER BY AVG(university_ranking_year.score) DESC
-                                LIMIT 200
-                                )
-                            WHERE country_name == '{country}'
-                        )
-                    AS FLOAT
-                    )
-                )
-                /
-                (
-                    CAST
-                    (
-                        (
-                            SELECT COUNT(*)
-                            FROM university
-                            INNER JOIN country
-                            ON university.country_id = country.id
-                            WHERE country.country_name == '{country}'
-                        )
-                        AS FLOAT
-                    )
-                )
-            ) as perc_uni_top_200
-        '''
-
-        df = execute_query(conn, query)
+        df = execute_query(conn, get_perc_uni_top_200_query(country))
         plot_metric(df.iloc[0, 0]*100, "% of Universities in top 200")
+    with row_1_col_2:
+        st.text("", help=get_perc_uni_top_200_query(country))
 
     # with row_1_col_2:
     #     plot_metric(len(df_orders["order_id"].unique()), len(df_orders_prev["order_id"].unique()), "Total orders")
