@@ -71,6 +71,34 @@ def plot_metric(number, title):
     st.plotly_chart(fig, use_container_width=True, config=config)
 
 
+def plot_gauge(value, title, suffix):
+    fig = go.Figure(
+        go.Indicator(
+            value=value,
+            mode="gauge+number",
+            domain={"x": [0, 1], "y": [0, 1]},
+            number={
+                "suffix": suffix,
+                "font.size": 26,
+            },
+            gauge={
+                "axis": {"range": [0, 100], "tickwidth": 1},
+                "bar": {"color": "green"},
+            },
+            title={
+                "text": title,
+                "font": {"size": 28},
+            },
+        )
+    )
+    fig.update_layout(
+        # paper_bgcolor="lightgrey",
+        height=200,
+        margin=dict(l=10, r=10, t=50, b=10, pad=8),
+    )
+    st.plotly_chart(fig, use_container_width=True)
+
+
 def hide_streamlit_header_footer():
     hide_st_style = """
             <style>
@@ -118,23 +146,35 @@ if __name__ == "__main__":
     with row_1_col_2:
         st.text("", help=get_perc_uni_top_200_query(country))
 
-    # with row_1_col_2:
-    #     plot_metric(len(df_orders["order_id"].unique()), len(df_orders_prev["order_id"].unique()), "Total orders")
+    with row_1_col_3:
+        df = execute_query(conn, get_perc_female_students(country))
+        plot_metric(df.iloc[0, 0], "% of female students")
+    with row_1_col_4:
+        st.text("", help=get_perc_female_students(country))
 
-    # with row_1_col_3:
-    #     plot_metric(df_orders["basket_size"].mean(), df_orders_prev["basket_size"].mean(), "Average basket size")
+    with row_1_col_5:
+        df = execute_query(conn, get_perc_international_students(country))
+        plot_metric(df.iloc[0, 0], "% of international students")
+    with row_1_col_6:
+        st.text("", help=get_perc_international_students(country))
 
-    # with row_1_col_4:
-    #     plot_metric(df_orders["days_since_prior_order"].mean(),
-    #                 df_orders_prev["days_since_prior_order"].mean(), "Days between orders")
+    with row_1_col_7:
+        df = execute_query(conn, get_avg_student_staff_ratio(country))
+        plot_metric(df.iloc[0, 0], "Average student staff ratio")
+    with row_1_col_8:
+        st.text("", help=get_avg_student_staff_ratio(country))
 
-    # query = f'''
-    # SELECT *
-    # FROM university
-    # LIMIT 10;
-    # '''
+    query = f'''
+    SELECT AVG(university_year.student_staff_ratio)
+    FROM university
+    LEFT JOIN country
+    ON country.id == university.country_id
+    LEFT JOIN university_year
+    ON university.id == university_year.university_id
+    WHERE country.country_name == '{country}'
+    '''
 
-    # st.write(execute_query(conn, query))
+    st.write(execute_query(conn, query))
 
     # query = f'''
     # SELECT university.id, university.university_name, country.country_name,

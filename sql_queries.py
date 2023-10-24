@@ -40,3 +40,45 @@ def get_perc_uni_top_200_query(country):
             ) as perc_uni_top_200
         '''
     return query
+
+
+def get_perc_female_students(country):
+    query = f'''
+        SELECT AVG(university_year.pct_female_students)
+        FROM university
+        LEFT JOIN country
+        ON country.id == university.country_id
+        LEFT JOIN university_year
+        ON university.id == university_year.university_id
+        WHERE country.country_name == '{country}'
+    '''
+
+    return query
+
+
+def get_perc_international_students(country):
+    query = f'''
+        SELECT AVG(university_year.pct_international_students)
+        FROM university
+        LEFT JOIN country
+        ON country.id == university.country_id
+        LEFT JOIN university_year
+        ON university.id == university_year.university_id
+        WHERE country.country_name == '{country}'
+    '''
+
+    return query
+
+
+def get_avg_student_staff_ratio(country):
+    query = f'''
+        SELECT AVG(university_year.student_staff_ratio)
+        FROM university
+        LEFT JOIN country
+        ON country.id == university.country_id
+        LEFT JOIN university_year
+        ON university.id == university_year.university_id
+        WHERE country.country_name == '{country}'
+    '''
+
+    return query
