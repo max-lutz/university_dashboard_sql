@@ -49,6 +49,16 @@ def get_country_list(conn):
     return df_countries.iloc[:, 0].to_list()
 
 
+def get_ranking_criteria_list(conn):
+    query = f'''
+        SELECT ranking_criteria.criteria_name
+        FROM ranking_criteria
+        WHERE ranking_criteria.id > 13
+    '''
+    df_criterias = execute_query(conn, query)
+    return df_criterias.iloc[:, 0].to_list()
+
+
 def plot_metric(number, title):
     config = {'staticPlot': True, 'displayModeBar': False}
 
@@ -164,28 +174,56 @@ if __name__ == "__main__":
     with row_1_col_8:
         st.text("", help=get_avg_student_staff_ratio(country))
 
-    query = f'''
-    SELECT AVG(university_year.student_staff_ratio)
-    FROM university
-    LEFT JOIN country
-    ON country.id == university.country_id
-    LEFT JOIN university_year
-    ON university.id == university_year.university_id
-    WHERE country.country_name == '{country}'
-    '''
+    row_2_col_1, row_2_col_2, row_2_col_3, row_2_col_4, row_2_col_5, row_2_col_6 = st.columns(
+        (ROW, 0.1, ROW, 0.1, ROW, 0.1))
+    with row_2_col_1:
+        ranking_criterias = get_ranking_criteria_list(conn)
+        row_3_col_1, row_3_col_2 = st.columns(2)
+        with row_3_col_1:
+            criteria_1 = st.selectbox('Criteria 1', ranking_criterias)
+        with row_3_col_2:
+            criteria_2 = st.selectbox('Criteria 2', ranking_criterias)
 
-    st.write(execute_query(conn, query))
+        query = f'''
+            SELECT 
+                country.country_name,
+                university.university_name,
+                university_ranking_year.year, 
+                ranking_criteria.criteria_name,
+                university_ranking_year.score
+            FROM university
+            LEFT JOIN country
+            ON country.id == university.country_id
+            RIGHT JOIN university_ranking_year
+            ON university.id = university_ranking_year.university_id
+            LEFT JOIN ranking_criteria
+            ON ranking_criteria.id == university_ranking_year.ranking_criteria_id
+            
+            WHERE country.country_name == '{country}' AND university_ranking_year.year == 2015
+            AND (ranking_criteria.criteria_name == '{criteria_1}' OR ranking_criteria.criteria_name == '{criteria_2}')
+        '''
+        df_scores = execute_query(conn, query)
+        df_scores = df_scores[['university_name', 'criteria_name', 'score']]
+
+        if (len(df_scores['criteria_name'].unique()) == 1):
+            pass
+        else:
+            df_scores = df_scores.pivot(index='university_name', columns='criteria_name')['score']
+
+            fig = px.scatter(df_scores, x=criteria_1, y=criteria_2)
+            st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
+
+            st.write(df_scores)
+
+    with row_2_col_2:
+        pass
 
     # query = f'''
-    # SELECT university.id, university.university_name, country.country_name,
-    # university_year.year, university_year.num_students, university_year.student_staff_ratio,
-    # university_year.pct_international_students, university_year.pct_female_students
+    # SELECT university_ranking_year.ranking_criteria_id, university_ranking_year.year, COUNT(university.id)
     # FROM university
-    # LEFT JOIN country
-    # ON university.country_id = country.id
-    # INNER JOIN university_year
-    # ON university.id = university_year.university_id
-    # WHERE country.country_name == 'France'
+    # INNER JOIN university_ranking_year
+    # ON university.id = university_ranking_year.university_id
+    # GROUP BY university_ranking_year.ranking_criteria_id, university_ranking_year.year
     # '''
 
     # st.write(execute_query(conn, query))
