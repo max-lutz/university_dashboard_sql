@@ -82,3 +82,21 @@ def get_avg_student_staff_ratio(country):
     '''
 
     return query
+
+
+def get_biggest_uni(country):
+    query = f'''
+            SELECT
+                university.university_name,
+                AVG(university_year.num_students) as num_students
+            FROM university
+            LEFT JOIN country
+            ON country.id == university.country_id
+            LEFT JOIN university_year
+            ON university.id = university_year.university_id            
+            WHERE country.country_name == '{country}'
+            GROUP BY university.university_name
+            ORDER BY university_year.num_students DESC
+            LIMIT 10;
+        '''
+    return query

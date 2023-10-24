@@ -218,6 +218,16 @@ if __name__ == "__main__":
     with row_2_col_2:
         pass
 
+    with row_2_col_3:
+        df_num_students = execute_query(conn, get_biggest_uni(country))
+        df_num_students.dropna(inplace=True)
+        fig = px.bar(df_num_students, x="university_name", y="num_students",
+                     title="Universities with the most students")
+        st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
+
+    with row_2_col_4:
+        st.text("", help=get_biggest_uni(country))
+
     # query = f'''
     # SELECT university_ranking_year.ranking_criteria_id, university_ranking_year.year, COUNT(university.id)
     # FROM university
